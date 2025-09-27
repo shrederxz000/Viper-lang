@@ -42,4 +42,14 @@ impl<'cursor> Cursor<'cursor> {
             '\0'
         }
     }
+
+    pub fn advance(&mut self) -> char {
+        if self.is_at_end() {
+            '\0'
+        } else {
+            let ch = self.code[self.current];
+            self.current += 1;
+            ch
+        }
+    }
 }

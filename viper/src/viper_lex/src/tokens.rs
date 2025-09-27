@@ -1,6 +1,3 @@
-// imports
-use viper_common::address::Address;
-
 /// Token kind
 #[derive(Debug, Clone, Eq, PartialEq, Copy, Hash)]
 #[allow(dead_code)]
@@ -142,21 +139,19 @@ pub enum TokenKind {
     EOF,               // end of file
 }
 
-/// Token structure
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct Token {
     pub tk_type: TokenKind,
     pub value: String,
-    pub address: Address,
+    pub pos: usize, // позиция в коде
 }
-/// Token implementation
+
 impl Token {
-    /// Creates token from tk_type, value, address
-    pub fn new(tk_type: TokenKind, value: String, address: Address) -> Token {
+    pub fn new(tk_type: TokenKind, value: String, pos: usize) -> Self {
         Token {
             tk_type,
             value,
-            address,
+            pos,
         }
     }
 }

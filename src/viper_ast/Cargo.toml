@@ -1,8 +1,0 @@
-[package]
-name = "viper_ast"
-version = "0.1.0"
-edition = "2024"
-
-[dependencies]
-viper_lex = { path = "../viper_lex" }
-viper_common = { path = "../viper_common" }
