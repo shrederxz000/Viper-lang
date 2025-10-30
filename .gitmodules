@@ -1,0 +1,3 @@
+[submodule "viper/viper/crates/viper_lexer"]
+	path = viper/viper/crates/viper_lexer
+	url = git@github.com:shrederxz000/Viper-lang.git

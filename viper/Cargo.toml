@@ -1,5 +1,5 @@
 [workspace]
 members = [
-    "src/viper_lex/",
+    "crates/viper_lexer",
 ]
 resolver = "3"
