@@ -3,5 +3,12 @@
 version = 4
 
 [[package]]
-name = "viper_lex"
+name = "viper"
+version = "0.1.0"
+dependencies = [
+ "viper_lexer",
+]
+
+[[package]]
+name = "viper_lexer"
 version = "0.1.0"

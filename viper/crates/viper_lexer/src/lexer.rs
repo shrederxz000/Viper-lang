@@ -1,5 +1,7 @@
+//viper_lex/src/lexer.rs
 use crate::token::{Token, TokenType};
-struct Lexer {
+#[derive(Debug, Hash)]
+pub struct Lexer {
     input: String,
     cursor: usize,
     line: usize,
@@ -8,227 +10,206 @@ struct Lexer {
 }
 
 impl Lexer {
-    pub fn tokenize(&mut self, input: String) -> Option<Vec<Token>> {
-        let current;
-        if input.is_empty() {
-            current = '\0';
-        } else {
-            current = input.as_bytes()[0] as char;
-        }
+    pub fn new(input: String) -> Self {
+        let current = input.chars().nth(0).unwrap_or('\0');
         Self {
             input,
             cursor: 0,
             line: 1,
             column: 1,
             current_ch: current,
-        };
+        }
+    }
+    pub fn tokenize(&mut self) -> Vec<Token> {
         let mut tokens: Vec<Token> = Vec::new();
-        // let mut buf: String = String::new();
 
-        let mut token_line: usize = self.line;
-        let mut token_column: usize = self.column;
+        while self.current_ch != '\0' {
+            let token_line = self.line;
+            let token_column = self.column;
 
-        while current != '\0' {
-            if current == '\0' {
-                break;
-            }
-            match current {
-                '+' => {
-                    tokens.push(Token::new(
-                        TokenType::PLUS,
-                        "+".to_string(),
-                        token_column,
-                        token_line,
-                    ));
-                    self.advance();
-                }
-                '-' => {
-                    tokens.push(Token::new(
-                        TokenType::MINUS,
-                        "-".to_string(),
-                        token_column,
-                        token_line,
-                    ));
-                    self.advance();
-                }
-                '*' => {
-                    tokens.push(Token::new(
-                        TokenType::MUL,
-                        "*".to_string(),
-                        token_column,
-                        token_line,
-                    ));
-                    self.advance();
-                }
-                '/' => {
-                    tokens.push(Token::new(
-                        TokenType::DIV,
-                        "/".to_string(),
-                        token_column,
-                        token_line,
-                    ));
-                    self.advance();
-                }
-                '=' => {
-                    tokens.push(Token::new(
-                        TokenType::ASSIGN,
-                        "=".to_string(),
-                        token_column,
-                        token_line,
-                    ));
-                    self.advance();
-                }
-                '(' => {
-                    tokens.push(Token::new(
-                        TokenType::LPAREN,
-                        "(".to_string(),
-                        token_column,
-                        token_line,
-                    ));
-                    self.advance();
-                }
-                ')' => {
-                    tokens.push(Token::new(
-                        TokenType::RPAREN,
-                        ")".to_string(),
-                        token_column,
-                        token_line,
-                    ));
-                    self.advance();
-                }
-                ';' => {
-                    tokens.push(Token::new(
-                        TokenType::SEMICOLON,
-                        ";".to_string(),
-                        token_column,
-                        token_line,
-                    ));
-                    self.advance();
-                }
-                ':' => {
-                    tokens.push(Token::new(
-                        TokenType::COLON,
-                        ":".to_string(),
-                        token_column,
-                        token_line,
-                    ));
-                    self.advance();
-                }
+            match self.current_ch {
+                '+' => self.push_simple_token(
+                    TokenType::PLUS,
+                    "+",
+                    &mut tokens,
+                    token_column,
+                    token_line,
+                ),
+                '-' => self.push_simple_token(
+                    TokenType::MINUS,
+                    "-",
+                    &mut tokens,
+                    token_column,
+                    token_line,
+                ),
+                '*' => self.push_simple_token(
+                    TokenType::MUL,
+                    "*",
+                    &mut tokens,
+                    token_column,
+                    token_line,
+                ),
+                '/' => self.push_simple_token(
+                    TokenType::DIV,
+                    "/",
+                    &mut tokens,
+                    token_column,
+                    token_line,
+                ),
+                '=' => self.push_simple_token(
+                    TokenType::ASSIGN,
+                    "=",
+                    &mut tokens,
+                    token_column,
+                    token_line,
+                ),
+                '(' => self.push_simple_token(
+                    TokenType::LPAREN,
+                    "(",
+                    &mut tokens,
+                    token_column,
+                    token_line,
+                ),
+                ')' => self.push_simple_token(
+                    TokenType::RPAREN,
+                    ")",
+                    &mut tokens,
+                    token_column,
+                    token_line,
+                ),
+                ';' => self.push_simple_token(
+                    TokenType::SEMICOLON,
+                    ";",
+                    &mut tokens,
+                    token_column,
+                    token_line,
+                ),
+                ':' => self.push_simple_token(
+                    TokenType::COLON,
+                    ":",
+                    &mut tokens,
+                    token_column,
+                    token_line,
+                ),
+
                 '"' => {
+                    let s = self.consume_string('"');
                     tokens.push(Token::new(
                         TokenType::STRING_LITERAL,
-                        self.consume_string('"')?,
+                        s,
                         token_column,
                         token_line,
                     ));
                 }
-                ' ' => {
-                    self.advance();
+
+                c if c.is_numeric() => {
+                    let num = self.consume_number();
+                    tokens.push(Token::new(
+                        TokenType::NUMBER_LITERAL,
+                        num,
+                        token_column,
+                        token_line,
+                    ));
                 }
-                '\n' => {
-                    self.column = 1;
+
+                ' ' | '\t' => self.advance(),
+                '\n' | '\r' => {
+                    self.advance();
                     self.line += 1;
-                }
-                '\r' => {
                     self.column = 1;
-                    self.line += 1;
                 }
-                '\t' => {
-                    self.advance(); //эмулирую 4 пробела
-                    self.advance();
-                    self.advance();
-                    self.advance();
+
+                _ if self.current_ch.is_alphabetic() => {
+                    tokens.push(self.consume_id_or_keyword(token_column, token_line));
                 }
+
                 _ => {
-                    if self.current_ch.is_alphabetic() {
-                        tokens.push(self.consume_id_or_keyword(token_column, token_line));
-                    } else {
-                        eprintln!(
-                            "Unexpected token:{} at column:{}, line:{}",
-                            self.current_ch, self.column, self.line
-                        )
-                    }
+                    eprintln!(
+                        "Unexpected token '{}' at line {}, column {}",
+                        self.current_ch, self.line, self.column
+                    );
+                    self.advance();
                 }
             }
         }
         tokens.push(Token::new(
             TokenType::EOF,
             "\0".to_string(),
-            token_column,
-            token_line,
+            self.column,
+            self.line,
         ));
-        return Some(tokens);
+        tokens
     }
+
+    fn push_simple_token(
+        &mut self,
+        tk_type: TokenType,
+        value: &str,
+        tokens: &mut Vec<Token>,
+        column: usize,
+        line: usize,
+    ) {
+        tokens.push(Token::new(tk_type, value.to_string(), column, line));
+        self.advance();
+    }
+
     fn advance(&mut self) {
         self.cursor += 1;
-        self.column += 1;
-        if self.cursor >= self.input.len() {
+
+        if let Some(ch) = self.input.chars().nth(self.cursor) {
+            self.current_ch = ch;
+        } else {
             self.current_ch = '\0';
-        } else {
-            self.current_ch = self.input.as_bytes()[self.cursor] as char;
-            if self.current_ch == '\n' || self.current_ch == '\r' {
-                //при переходе строки сбрасываем колонку до первого символа и прибавляем строку
-                self.column = 1;
-                self.line += 1;
-            }
         }
+        self.column += 1;
     }
-    fn skip_whitespace(&mut self) {
-        while self.current_ch == ' ' {
-            self.advance();
-        }
+
+    pub fn peek(&self) -> char {
+        self.input.chars().nth(self.cursor + 1).unwrap_or('\0')
     }
-    pub fn peek(&mut self) -> char {
-        let next_pos: usize = self.cursor.clone() + 1;
-        let res: char;
-        if next_pos < self.input.len() {
-            res = self.input.as_bytes()[next_pos].clone() as char;
-        } else {
-            res = '\0';
-        }
-        return res;
-    }
+
     fn consume_number(&mut self) -> String {
-        self.advance(); // пропустим открывающую кавычку
-        let mut buf: String = String::new(); // создаем буфер
-        while self.current_ch.is_numeric() {
-            buf.push(self.current_ch); // добавляем значение
+        let mut buf = String::new();
+        while self.current_ch.is_ascii_digit() {
+            buf.push(self.current_ch);
             self.advance();
         }
-        return buf; // отдаем буфер
+        buf
     }
-    fn consume_string(&mut self, delimiter: char) -> Option<String> {
-        self.advance();
-        let mut buf: String = String::new();
+
+    fn consume_string(&mut self, delimiter: char) -> String {
+        self.advance(); // пропускаем открывающую кавычку
+        let mut buf = String::new();
         while self.current_ch != delimiter && self.current_ch != '\0' {
             buf.push(self.current_ch);
+            self.advance();
         }
         if self.current_ch == delimiter {
-            self.advance();
+            self.advance(); // закрывающая кавычка
         } else {
             eprintln!(
-                "Unterminated string literal at line column:{}, line:{}",
-                self.column, self.line
+                "Unterminated string literal at line {}, column {}",
+                self.line, self.column
             );
         }
-        return Some(buf);
+        buf
     }
+
     fn consume_id_or_keyword(&mut self, tk_column: usize, tk_line: usize) -> Token {
-        let mut buf: String = String::new();
+        let mut buf = String::new();
         while self.current_ch.is_alphanumeric() {
             buf.push(self.current_ch);
             self.advance();
         }
-        let result: &str = &buf;
-        let tk_type: TokenType;
 
-        match result {
-            "let" => tk_type = TokenType::LET,
-            "print" => tk_type = TokenType::PRINT,
-            "string" => tk_type = TokenType::STRING,
-            "number" => tk_type = TokenType::NUMBER,
-            _ => tk_type = TokenType::ID,
-        }
-        return Token::new(tk_type, result.to_string(), tk_column, tk_line);
+        let tk_type = match buf.as_str() {
+            "let" => TokenType::LET,
+            "print" => TokenType::PRINT,
+            "string" => TokenType::STRING,
+            "number" => TokenType::NUMBER,
+            _ => TokenType::ID,
+        };
+
+        Token::new(tk_type, buf, tk_column, tk_line)
     }
 }

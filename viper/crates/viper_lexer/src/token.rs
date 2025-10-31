@@ -1,5 +1,5 @@
+//viper_lex/src/token.rs
 #[derive(Debug, Clone, Copy, Hash)]
-#[warn(non_camel_case_types)]
 pub enum TokenType {
     PLUS,
     MINUS,
@@ -23,6 +23,7 @@ pub enum TokenType {
     EOF,
 }
 
+#[derive(Debug, Clone, Hash)]
 pub struct Token {
     tk_type: TokenType,
     value: String,
